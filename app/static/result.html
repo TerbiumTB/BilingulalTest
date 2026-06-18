@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Результат теста</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <span class="brand">Тест на билингвальность</span>
+      <span class="spacer"></span>
+      <a class="link" href="/info">Как это считается</a>
+      <a class="link" href="/admin">Дашборд</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <h1>Ваш результат</h1>
+
+    <div class="card">
+      <div class="score-hero">
+        <div class="label">Степень билингвальности</div>
+        <div class="big" id="biling">—</div>
+      </div>
+    </div>
+
+    <div class="card" id="metrics"></div>
+
+    <div class="card" id="honesty"></div>
+
+    <button class="btn-primary" onclick="location.href='/'">Пройти ещё раз</button>
+    <p class="muted" style="text-align:center;margin-top:14px">
+      Что означают эти числа — <a href="/info">на странице «О тесте»</a>.
+    </p>
+  </div>
+
+  <script src="/static/result.js"></script>
+</body>
+</html>
