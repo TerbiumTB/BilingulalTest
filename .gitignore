@@ -225,3 +225,6 @@ __marimo__/
 # web app local artifacts
 app/data/*.db
 .venv/
+
+
+lemma_level_lang/checkpoints
