@@ -137,7 +137,7 @@ class LLTrainer(Trainer):
         return pred_ids, target_ids
     
 class LLLTrainer(Trainer):
-    def _predict_batch(self, batch):    
+    def _predict_batch(self, batch):
         input_ids = batch["input_ids"].to(self.device)
         target_ids = batch["target_ids"].to(self.device)
         attention_mask = batch["attention_mask"].to(self.device)
@@ -147,3 +147,14 @@ class LLLTrainer(Trainer):
         pred_ids = self.model(input_ids, level_idx, lang_idx, attention_mask)
 
         return pred_ids, target_ids
+
+
+class ClassifierTrainer(Trainer):
+    def _predict_batch(self, batch):
+        input_ids = batch["input_ids"].to(self.device)
+        attention_mask = batch["attention_mask"].to(self.device)
+        level_idx = batch["level_idx"].to(self.device)
+
+        logits = self.model(input_ids, attention_mask)
+
+        return logits, level_idx
