@@ -163,16 +163,16 @@ class PlotLogger(BaseLogger):
 		vmargin = (vmax - vmin) * 0.1 or 0.1
 		ax_val.set_ylim(vmin - vmargin, vmax + vmargin)
 
-		ax_val.set_xticks(val_xs)
-		ax_val.set_xticklabels(val_xs, fontsize=9)
+		# ax_val.set_xticks(val_xs)
+		# ax_val.set_xticklabels(val_xs, fontsize=9)
+		# ax_val.set
 		ax_val.set_xlabel("epoch")
 		ax_val.set_ylabel("val metric")
 		ax_val.set_title("Validation metric")
 		# ax_val.legend(fontsize=9, loc="upper right")
 		ax_val.grid(True, which="major", linestyle="-", linewidth=0.4, alpha=0.4)
 
-
-	def _redraw(self):
+	def _build_fig(self):
 		series = self._build_series()
 		if not series:
 			return
@@ -232,6 +232,13 @@ class PlotLogger(BaseLogger):
 
 		fig.tight_layout()
 
+		return fig
+
+	def _redraw(self):
+		fig = self._build_fig()
+		if fig is None:
+			return
+
 		clear_output(wait=True)
 		plt.show()
 		plt.close(fig)
@@ -243,7 +250,9 @@ class PlotLogger(BaseLogger):
 		return best_epoch, self.val_metrics[best_epoch]
 
 	def save(self, path: str):
-		series = self._build_series()
-		if not series:
+		fig = self._build_fig()
+		if fig is None:
 			return
-		self._redraw()
+
+		fig.savefig(os.path.join(path, "logplot.png"), dpi=150, bbox_inches="tight")
+		plt.close(fig)
