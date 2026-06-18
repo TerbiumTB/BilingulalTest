@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Дашборд — статистика теста</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <span class="brand">Тест на билингвальность</span>
+      <span class="spacer"></span>
+      <a class="link" href="/">Начать тест</a>
+      <a class="link" href="/info">О тесте</a>
+    </div>
+  </nav>
+
+  <div class="wrap wide">
+    <h1>Статистика прохождений</h1>
+    <p class="lead">Сводка по всем завершённым тестам: средние оценки, точность по
+      уровням и типам вопросов, эффективность ловушек на честность.</p>
+
+    <div class="grid" id="cards"></div>
+
+    <div class="cols">
+      <div class="card">
+        <h2>Доля верных ответов по уровням</h2>
+        <canvas id="levelChart" height="190"></canvas>
+      </div>
+      <div class="card">
+        <h2>Доля верных ответов по типам вопросов</h2>
+        <canvas id="typeChart" height="190"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Последние прохождения</h2>
+      <table id="recent">
+        <thead>
+          <tr>
+            <th>Когда</th><th>Режим</th>
+            <th class="num">Русский</th><th class="num">Английский</th>
+            <th class="num">Билингвальность</th><th class="num">Честность</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/static/admin.js"></script>
+</body>
+</html>

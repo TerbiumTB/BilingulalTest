@@ -221,3 +221,7 @@ __marimo__/
 
 .vscode
 .DS_Store
+
+# web app local artifacts
+app/data/*.db
+.venv/
