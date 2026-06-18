@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import ast
 import random
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from .. import config
 from .word_provider import WordProvider, WordsUnavailable
@@ -51,75 +53,83 @@ class Question:
         }
 
 
-SENTENCE_GAP_BANK: list[dict] = [
+DIR_RU_TO_EN = "RU_to_EN"
+DIR_EN_TO_RU = "EN_to_RU"
+
+_DIR_LANG = {DIR_RU_TO_EN: "EN", DIR_EN_TO_RU: "RU"}
+_DIR_INSTRUCTION = {
+    DIR_RU_TO_EN: "Выберите английское слово, подходящее на место пропуска",
+    DIR_EN_TO_RU: "Выберите русское слово, подходящее на место пропуска",
+}
+
+_FALLBACK_GAP_BANK: list[dict] = [
     {
         "level": "A1",
-        "sentence": "Мой младший брат каждый день идёт в ___ (школу).",
+        "direction": DIR_RU_TO_EN,
+        "sentence": "Мой младший брат каждый день идёт в ___ .",
         "answer": "school",
         "distractors": ["house", "water", "green", "run"],
     },
     {
-        "level": "A1",
-        "sentence": "Утром я люблю пить горячий ___ (кофе).",
-        "answer": "coffee",
-        "distractors": ["table", "window", "happy", "fast"],
-    },
-    {
         "level": "A2",
-        "sentence": "На выходных мы поедем на ___ (море).",
+        "direction": DIR_RU_TO_EN,
+        "sentence": "На выходных мы поедем на ___ .",
         "answer": "sea",
         "distractors": ["book", "chair", "loud", "buy"],
     },
     {
-        "level": "A2",
-        "sentence": "Она забыла дома свой ___ (зонт), а на улице дождь.",
-        "answer": "umbrella",
-        "distractors": ["bridge", "pencil", "garden", "silent"],
-    },
-    {
         "level": "B1",
-        "sentence": "Чтобы получить эту работу, нужен опыт и хорошее ___ (образование).",
-        "answer": "education",
-        "distractors": ["furniture", "weather", "distance", "courage"],
-    },
-    {
-        "level": "B1",
-        "sentence": "Он принял трудное ___ (решение) и уволился.",
+        "direction": DIR_RU_TO_EN,
+        "sentence": "Он принял трудное ___ и уволился.",
         "answer": "decision",
         "distractors": ["invitation", "celebration", "direction", "tradition"],
     },
-    {
-        "level": "B2",
-        "sentence": "Её аргументы были вполне ___ (убедительными).",
-        "answer": "convincing",
-        "distractors": ["confusing", "annoying", "demanding", "surrounding"],
-    },
-    {
-        "level": "B2",
-        "sentence": "Компания решила ___ (расширить) своё присутствие на рынке.",
-        "answer": "expand",
-        "distractors": ["expend", "expel", "expose", "expire"],
-    },
-    {
-        "level": "C1",
-        "sentence": "Его замечание было довольно ___ (язвительным).",
-        "answer": "sarcastic",
-        "distractors": ["spacious", "strategic", "systematic", "sympathetic"],
-    },
-    {
-        "level": "C2",
-        "sentence": "Этот политик известен своей ___ (изворотливостью).",
-        "answer": "slipperiness",
-        "distractors": ["sloppiness", "stubbornness", "sluggishness", "shrewdness"],
-    },
 ]
 
+_GAP_FILE = Path(__file__).resolve().parent.parent / "data" / "words" / "gap_fill_bilingual_examples.txt"
 
-def _gap_pick(level: str, avoid: set[str] | None = None) -> dict:
+
+def _load_gap_bank() -> list[dict]:
+    try:
+        raw = _GAP_FILE.read_text(encoding="utf-8")
+        data = ast.literal_eval(raw)
+    except (OSError, ValueError, SyntaxError):
+        return list(_FALLBACK_GAP_BANK)
+
+    bank: list[dict] = []
+    for item in data:
+        try:
+            sentence = item["sentence"]
+            answer = item["answer"]
+            level = item["level"]
+        except (KeyError, TypeError):
+            continue
+        if not sentence or not answer or level not in config.LEVEL2IDX:
+            continue
+        direction = item.get("direction", DIR_RU_TO_EN)
+        if direction not in _DIR_LANG:
+            direction = DIR_RU_TO_EN
+        bank.append({
+            "level": level,
+            "direction": direction,
+            "sentence": sentence,
+            "answer": answer,
+            "distractors": list(item.get("distractors", [])),
+        })
+    return bank or list(_FALLBACK_GAP_BANK)
+
+
+SENTENCE_GAP_BANK: list[dict] = _load_gap_bank()
+
+
+def _gap_pick(level: str, lang: str, avoid: set[str] | None = None) -> dict:
     avoid = avoid or set()
+    pool_all = [t for t in SENTENCE_GAP_BANK if _DIR_LANG[t["direction"]] == lang]
+    if not pool_all:  # на случай, если для языка нет примеров — берём любые
+        pool_all = SENTENCE_GAP_BANK
     target = config.LEVEL2IDX[level]
     order = sorted(
-        SENTENCE_GAP_BANK,
+        pool_all,
         key=lambda t: abs(config.LEVEL2IDX[t["level"]] - target),
     )
     fresh = [t for t in order if t["sentence"] not in avoid]
@@ -187,13 +197,15 @@ def make_fake_seen(provider: WordProvider, lang: str, level: str,
 
 def make_sentence_gap(lang: str, level: str,
                       avoid: set[str] | None = None) -> Question:
-    tpl = _gap_pick(level, avoid)
+    tpl = _gap_pick(level, lang, avoid)
+    direction = tpl["direction"]
+    tested_lang = _DIR_LANG[direction]
     options = [tpl["answer"]] + list(tpl["distractors"])
     random.shuffle(options)
     return Question(
         question_id=_new_id(),
         type=TYPE_SENTENCE_GAP,
-        lang="EN",
+        lang=tested_lang,
         level=tpl["level"],
         prompt=tpl["sentence"].replace("___", "______"),
         answer_kind=ANSWER_CHOICE,
@@ -201,7 +213,7 @@ def make_sentence_gap(lang: str, level: str,
         correct_answer=tpl["answer"],
         affects_theta=True,
         extra={
-            "instruction": "Выберите английское слово, подходящее на место пропуска",
+            "instruction": _DIR_INSTRUCTION[direction],
             "raw_sentence": tpl["sentence"],
         },
     )

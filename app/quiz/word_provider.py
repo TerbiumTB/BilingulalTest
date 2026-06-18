@@ -22,11 +22,6 @@ class WordsUnavailable(RuntimeError):
 
 
 class FileWordProvider:
-    """
-    Индекс: (language, level, legitimate) -> [lemmas]. Если под точный
-    уровень слов нет, берём ближайший по индексу уровень.
-    """
-
     def __init__(self, words_dir: Path | None = None):
         self.words_dir = Path(words_dir or config.WORDS_DIR)
         # (lang, level, legitimate) -> list[str]
