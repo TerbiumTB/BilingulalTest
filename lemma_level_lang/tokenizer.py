@@ -9,10 +9,15 @@ special_tokens = {
     "unk_token": "<UNK>"
     }
 
+
+CHARALPHABET = " -'"
+RUALPHABET = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+ENGALPHAPBET = "abcdefghijklmnopqrstuvwxyz"
+
 class CharTokenizer(PreTrainedTokenizer):
-    def __init__(self, alphabeth, model_max_length=32, **kwargs):
-        self.characters = alphabeth
-        self.char2idx = {ch: i for i, ch in enumerate(alphabeth)}
+    def __init__(self, characters, model_max_length=32, **kwargs):
+        self.characters = characters
+        self.char2idx = {ch: i for i, ch in enumerate(characters)}
         self.idx2char = {i: ch for ch, i in self.char2idx.items()}
 
         super().__init__(model_max_length=model_max_length, **kwargs)
@@ -38,6 +43,8 @@ class CharTokenizer(PreTrainedTokenizer):
 def get_char_tokenizer(alphabet, max_len):
     char_tokenizer = CharTokenizer(characters=alphabet, model_max_length=max_len)
     char_tokenizer.add_special_tokens(special_tokens)
+
+    return char_tokenizer
 
 
 def get_bpe_tokenizer(data, vocab_size=2000, min_frequency=1,):

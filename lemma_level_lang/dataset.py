@@ -4,7 +4,7 @@ import pandas as pd
 
 
 LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"]
-LANGUAGES = ["EN", "RU"]
+LANGUAGES = ["ENG", "RU"]
 NUM_LEVELS = len(LEVELS)
 NUM_LANGS = len(LANGUAGES)
 
