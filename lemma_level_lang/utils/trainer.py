@@ -40,12 +40,12 @@ class Trainer():
 
 
     @torch.inference_mode()
-    def _val_epoch(self, val_loader, metric, transform=None):
+    def _val_epoch(self, val_loader, metrics: dict[str, nn.Module], transform=None):
         preds, targets = self._predict_epoch(val_loader, transform)
 
-        val_metric = metric(preds, targets).item()
-        self.logger.on_val_epoch(val_metric)
-        return val_metric
+        val_metrics = {name: m(preds, targets).item() for name, m in metrics.items()}
+        self.logger.on_val_epoch(val_metrics)
+        return val_metrics
 
 
     def _train_epoch(self, train_loader, criterion, opt):
@@ -95,11 +95,10 @@ class Trainer():
         return preds
 
     @torch.inference_mode()
-    def test(self, test_loader, metrics, transform=None):
+    def test(self, test_loader, metrics: dict[str, nn.Module], transform=None):
         preds, targets = self._predict_epoch(test_loader, transform)
 
-        # test_metric = criterion(preds, targets).item()
-        test_metrics = [metric(preds, targets).item() for metric in metrics]
+        test_metrics = {name: m(preds, targets).item() for name, m in metrics.items()}
         return test_metrics
 
     def load(self, chkpt_num: int|None = None, ckpt_path: str|None = None, ):
