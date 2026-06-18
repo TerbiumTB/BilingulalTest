@@ -86,3 +86,18 @@ class SequenceExactMatch(nn.Module):
             if len(eos_positions) > 0:
                 seq = seq[:eos_positions[0]]
         return seq
+
+
+class ClassificationAccuracy(nn.Module):
+    def __init__(self, num_classes, top_k=1):
+        super().__init__()
+        self.acc = Accuracy(task="multiclass", num_classes=num_classes, top_k=top_k)
+
+    def forward(self, preds, target):
+        return self.acc(preds, target)
+
+
+class OrdinalMAE(nn.Module):
+    def forward(self, preds, target):
+        pred_idx = preds.argmax(dim=-1)
+        return (pred_idx - target).abs().float().mean()
