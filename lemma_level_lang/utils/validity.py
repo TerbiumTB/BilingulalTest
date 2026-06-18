@@ -5,8 +5,8 @@ import spacy
 class LemmaValidator:
     def __init__(self, en_model: str = "en_core_web_sm"):
         self.en_model_name = en_model
-        self._morph_ru = MorphAnalyzer()
-        self._nlp_en = spacy.load(self.en_model_name, disable=["parser", "ner"])
+        self.morph_ru = MorphAnalyzer()
+        self.nlp_en = spacy.load(self.en_model_name, disable=["parser", "ner"])
 
     def is_lemma(self, word: str, lang: str) -> bool:
         word = word.strip().lower()

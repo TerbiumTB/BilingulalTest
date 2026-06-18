@@ -200,10 +200,12 @@ class PlotLogger(BaseLogger):
 		ax.plot(val_xs, values, color="#D85A30", linewidth=1.5,
 				marker="o", markersize=4)
 
-		vmin = min(values)
-		vmax = max(values)
-		vmargin = (vmax - vmin) * 0.1 or 0.1
-		ax.set_ylim(vmin - vmargin, vmax + vmargin)
+		
+		# vmin = min(values)
+		# vmax = max(values)
+		# if vmin 
+		# vmargin = (vmax - vmin) * 0.1 or 0.1
+		# ax.set_ylim(vmin - vmargin, vmax + vmargin)
 
 		ax.set_xlabel("epoch", fontsize=8)
 		ax.set_title(name, fontsize=9)
@@ -229,6 +231,7 @@ class PlotLogger(BaseLogger):
 			self._draw_loss(ax, series)
 
 			for i, (name, values) in enumerate(self.val_metrics.items()):
+				# if value
 				ax_m = fig.add_subplot(gs[i, 1])
 				self._draw_metric(ax_m, name, values)
 
