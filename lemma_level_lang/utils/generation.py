@@ -34,7 +34,7 @@ def generate_word(model, tokenizer, level=None, lang=None, max_len=32,
     for _ in range(max_len):
         input_ids = torch.tensor([generated], device=device)
         attention_mask = torch.ones_like(input_ids)
-        logits = _forward(model, input_ids, attention_mask, level_idx, lang_idx)
+        logits = _forward(model, input_ids, attention_mask, level_idx=level_idx)
         next_token_logits = logits[0, -1, :] / temperature
         if do_sample:
             probs = F.softmax(next_token_logits, dim=-1)
@@ -68,7 +68,7 @@ def generate_batch(model, tokenizer, n, level=None, lang=None, max_len=32,
 
     for _ in range(max_len - 1):
         attention_mask = torch.ones_like(generated)
-        logits = _forward(model, generated, attention_mask, level_idx, lang_idx)
+        logits = _forward(model, generated, attention_mask, level_idx=level_idx)
         next_token_logits = logits[:, -1, :] / temperature
         if do_sample:
             probs = F.softmax(next_token_logits, dim=-1)
