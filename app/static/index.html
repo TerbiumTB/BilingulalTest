@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Тест на билингвальность</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <span class="brand">Тест на билингвальность</span>
+      <span class="spacer"></span>
+      <a class="link" href="/info">О тесте</a>
+      <a class="link" href="/admin">Дашборд</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <h1>Проверьте владение двумя языками</h1>
+    <p class="lead">Короткий адаптивный тест оценивает ваш уровень русского и английского
+      и степень их смешения. Вопросы подстраиваются под ваши ответы по ходу прохождения.</p>
+
+    <div class="card">
+      <label for="mode">Что проверяем</label>
+      <select id="mode">
+        <option value="bilingual">Оба языка — билингвальность (RU + EN)</option>
+        <option value="ru">Только русский</option>
+        <option value="en">Только английский</option>
+      </select>
+
+      <label for="k">Длина теста</label>
+      <select id="k">
+        <option value="6">Короткий — 6 вопросов</option>
+        <option value="10" selected>Стандартный — 10 вопросов</option>
+        <option value="16">Подробный — 16 вопросов</option>
+      </select>
+
+      <button class="btn-primary" id="start">Начать тест</button>
+    </div>
+
+    <p class="muted">Как считается результат и подбирается сложность — на странице
+      <a href="/info">«О тесте»</a>.</p>
+  </div>
+
+  <script>
+    document.getElementById("start").addEventListener("click", () => {
+      const mode = document.getElementById("mode").value;
+      const k = document.getElementById("k").value;
+      location.href = `/test?mode=${mode}&k=${k}`;
+    });
+  </script>
+</body>
+</html>
