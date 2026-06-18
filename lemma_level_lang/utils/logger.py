@@ -25,7 +25,7 @@ class BaseLogger(ABC):
 		...
 
 	@abstractmethod
-	def on_val_epoch(self, val_metric):
+	def on_val_epoch(self, metrics: dict[str, float]):
 		...
 
 	@abstractmethod
@@ -33,7 +33,7 @@ class BaseLogger(ABC):
 		...
 
 	@abstractmethod
-	def get_best_val_score(self):
+	def get_best_val_score(self, metric_name=None, mode='min'):
 		...
 
 class TQDMLogger(BaseLogger):
@@ -73,8 +73,10 @@ class TQDMLogger(BaseLogger):
 
 		self.epoch_losses.append(self._n_batch_losses)
 
-	def on_val_epoch(self, val_metric):
-		self._postfix['validation metric'] = val_metric
+	def on_val_epoch(self, metrics: dict[str, float]):
+		for name, value in metrics.items():
+			self._postfix[f"val_{name}"] = value
+		self.val_metrics.append(metrics)
 
 	def on_epoch_start(self):
 		self.log = tqdm(unit="batch",
@@ -87,10 +89,15 @@ class TQDMLogger(BaseLogger):
 		self._n_batch_losses = []
 		self._postfix = {}
 
-	def get_best_val_score(self):
-		best_epoch = np.argmin(self.val_metrics)
-		return best_epoch, self.val_metrics[best_epoch]
-  
+	def get_best_val_score(self, metric_name=None, mode='min'):
+		if not self.val_metrics:
+			return None, None
+		if metric_name is None:
+			metric_name = next(iter(self.val_metrics[0]))
+		values = [d[metric_name] for d in self.val_metrics]
+		best_epoch = int(np.argmin(values) if mode == 'min' else np.argmax(values))
+		return best_epoch, values[best_epoch]
+
 
 
 class PlotLogger(BaseLogger):
@@ -99,7 +106,7 @@ class PlotLogger(BaseLogger):
 		self.figsize = figsize
 
 		self.epoch_losses = []
-		self.val_metrics = []
+		self.val_metrics = {}
 		self._batch_losses = []
 		self._n_batch_losses = []
 		self._total = None
@@ -108,7 +115,7 @@ class PlotLogger(BaseLogger):
 		self.epoch_losses = []
 		self._batch_losses = []
 		self._n_batch_losses = []
-		self.val_metrics = []
+		self.val_metrics = {}
 		self._total = total
 
 	def on_epoch_start(self):
@@ -132,8 +139,11 @@ class PlotLogger(BaseLogger):
 		self.epoch_losses.append(self._n_batch_losses)
 		self._redraw()
 
-	def on_val_epoch(self, val_metric):
-		self.val_metrics.append(val_metric)
+	def on_val_epoch(self, metrics: dict[str, float]):
+		for name, value in metrics.items():
+			if name not in self.val_metrics:
+				self.val_metrics[name] = []
+			self.val_metrics[name].append(value)
 
 	def _build_series(self):
 		all_points = []
@@ -151,49 +161,8 @@ class PlotLogger(BaseLogger):
 		if self._n_batch_losses:
 			boundaries.append(cursor)
 		return boundaries
-	
-	def draw_val(self, ax_val):
-		# ax_val = axes[1]
-		val_xs = list(range(1, len(self.val_metrics) + 1))
-		ax_val.plot(val_xs, self.val_metrics, color="#D85A30", linewidth=1.5,
-					marker="o", markersize=4, label="val metric")
 
-		vmin = min(self.val_metrics)
-		vmax = max(self.val_metrics)
-		vmargin = (vmax - vmin) * 0.1 or 0.1
-		ax_val.set_ylim(vmin - vmargin, vmax + vmargin)
-
-		# ax_val.set_xticks(val_xs)
-		# ax_val.set_xticklabels(val_xs, fontsize=9)
-		# ax_val.set
-		ax_val.set_xlabel("epoch")
-		ax_val.set_ylabel("val metric")
-		ax_val.set_title("Validation metric")
-		# ax_val.legend(fontsize=9, loc="upper right")
-		ax_val.grid(True, which="major", linestyle="-", linewidth=0.4, alpha=0.4)
-
-	def _build_fig(self):
-		series = self._build_series()
-		if not series:
-			return
-
-		has_val = len(self.val_metrics) > 0
-
-		if has_val:
-			fig, (ax, val_ax) = plt.subplots(
-				1, 2,
-				figsize=self.figsize,
-				gridspec_kw={"width_ratios": [3, 1]}
-			)
-		else: 
-			fig, ax = plt.subplots(
-				1, 1,
-				figsize=self.figsize,
-				# gridspec_kw={"width_ratios": [3, 1]}
-
-			)
-
-
+	def _draw_loss(self, ax, series):
 		xs = list(range(len(series)))
 		ax.plot(xs, series, color="#378ADD", linewidth=1.5, label="avg batch loss")
 		ax.fill_between(xs, series, alpha=0.07, color="#378ADD")
@@ -223,12 +192,45 @@ class PlotLogger(BaseLogger):
 		ax.set_xlabel("log step (epochs)")
 		ax.set_ylabel("avg batch loss")
 		ax.set_title("Training loss")
-		# ax.legend(fontsize=9, loc="upper right")
 		ax.grid(True, which="major", linestyle="-", linewidth=0.4, alpha=0.4)
 		ax.grid(True, which="minor", linestyle=":", linewidth=0.3, alpha=0.25)
 
-		if has_val:
-			self.draw_val(val_ax)
+	def _draw_metric(self, ax, name, values):
+		val_xs = list(range(1, len(values) + 1))
+		ax.plot(val_xs, values, color="#D85A30", linewidth=1.5,
+				marker="o", markersize=4)
+
+		vmin = min(values)
+		vmax = max(values)
+		vmargin = (vmax - vmin) * 0.1 or 0.1
+		ax.set_ylim(vmin - vmargin, vmax + vmargin)
+
+		ax.set_xlabel("epoch", fontsize=8)
+		ax.set_title(name, fontsize=9)
+		ax.tick_params(axis="both", labelsize=7)
+		ax.grid(True, which="major", linestyle="-", linewidth=0.4, alpha=0.4)
+
+	def _build_fig(self):
+		series = self._build_series()
+		if not series:
+			return
+
+		n_metrics = len(self.val_metrics)
+
+		if n_metrics == 0:
+			fig, ax = plt.subplots(1, 1, figsize=self.figsize)
+			self._draw_loss(ax, series)
+		else:
+			fig_h = max(self.figsize[1], 1.8 * n_metrics + 1)
+			fig = plt.figure(figsize=(self.figsize[0], fig_h))
+			gs = fig.add_gridspec(n_metrics, 2, width_ratios=[3, 1])
+
+			ax = fig.add_subplot(gs[:, 0])
+			self._draw_loss(ax, series)
+
+			for i, (name, values) in enumerate(self.val_metrics.items()):
+				ax_m = fig.add_subplot(gs[i, 1])
+				self._draw_metric(ax_m, name, values)
 
 		fig.tight_layout()
 
@@ -243,11 +245,14 @@ class PlotLogger(BaseLogger):
 		plt.show()
 		plt.close(fig)
 
-	def get_best_val_score(self):
+	def get_best_val_score(self, metric_name=None, mode='min'):
 		if not self.val_metrics:
 			return None, None
-		best_epoch = int(np.argmin(self.val_metrics))
-		return best_epoch, self.val_metrics[best_epoch]
+		if metric_name is None:
+			metric_name = next(iter(self.val_metrics))
+		values = self.val_metrics[metric_name]
+		best_epoch = int(np.argmin(values) if mode == 'min' else np.argmax(values))
+		return best_epoch, values[best_epoch]
 
 	def save(self, path: str):
 		fig = self._build_fig()
