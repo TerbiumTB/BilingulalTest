@@ -1,4 +1,4 @@
-gWord,Length,Freq_HAL,Log_Freq_HAL,I_Mean_RT,I_Zscore,I_SD,Obs,I_Mean_Accuracy
+Word,Length,Freq_HAL,Log_Freq_HAL,I_Mean_RT,I_Zscore,I_SD,Obs,I_Mean_Accuracy
 a,1,10610626,16.18,798.92,-0.01,333.85,24,0.73
 aah,3,222,5.4,816.43,0.21,186.03,21,0.62
 Aaron,5,10806,9.29,736.06,-0.11,289.01,32,0.97

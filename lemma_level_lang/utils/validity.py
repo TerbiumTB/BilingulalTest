@@ -3,7 +3,7 @@ import spacy
 
 
 class LemmaValidator:
-    def __init__(self, en_model: str = "en_core_web_sm"):
+    def __init__(self, en_model: str = "en_core_web_lg"):
         self.en_model_name = en_model
         self.morph_ru = MorphAnalyzer()
         self.nlp_en = spacy.load(self.en_model_name, disable=["parser", "ner"])
@@ -19,7 +19,7 @@ class LemmaValidator:
 
     def _is_lemma_ru(self, word: str) -> bool:
         parses = self.morph_ru.parse(word)
-        return any(p.is_known and p.normal_form == word for p in parses)
+        return any(p.is_known for p in parses)
 
     def _is_lemma_en(self, word: str) -> bool:
         if not word.isalpha():
@@ -28,7 +28,13 @@ class LemmaValidator:
         if len(doc) != 1:
             return False
         token = doc[0]
-        return token.is_alpha and token.lemma_.lower() == word
+        if not token.is_oov:
+            return True
+        
+        lemma = token.lemma_
+        if lemma != token:
+            return _is_lemma_en(lemma)
+        return False
 
     def lemma_rate(self, words: list[str], lang: str) -> float:
         if not words:
