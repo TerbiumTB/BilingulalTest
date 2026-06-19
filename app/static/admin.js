@@ -6,6 +6,7 @@ const MODE_LABEL = { bilingual: "Оба языка", ru: "Русский", en: "
 const TYPE_LABEL = {
   vocab: "Знание слов",
   sentence_gap: "Пропуск в предложении",
+  text_compression: "Сжатие текста",
   fake_seen: "Выдуманные слова",
   translate: "Перевод",
 };
@@ -42,7 +43,7 @@ function barChart(canvasId, labels, data) {
     statCard(`${s.avg.ru}%`, "Средний русский") +
     statCard(`${s.avg.en}%`, "Средний английский") +
     statCard(`${s.avg.bilingualism}%`, "Средняя билингвальность") +
-    statCard(`${s.avg.honesty}%`, "Средняя честность") +
+    statCard(`${s.avg.honesty}%`, "Средняя устойчивость к интерференции") +
     statCard(s.fake.total, "Показано ловушек") +
     statCard(`${s.fake.caught_rate}%`, "Попались на ловушку");
 
@@ -65,7 +66,7 @@ function barChart(canvasId, labels, data) {
         <td>${MODE_LABEL[r.mode] || r.mode}</td>
         <td class="num">${r.ru}%</td>
         <td class="num">${r.en}%</td>
-        <td class="num">${r.bilingualism}%</td>
+        <td class="num">${r.mode === "bilingual" ? r.bilingualism + "%" : "—"}</td>
         <td class="num">${r.honesty}%</td>
       </tr>`
     )

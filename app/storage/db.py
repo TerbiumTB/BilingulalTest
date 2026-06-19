@@ -112,6 +112,12 @@ def percentile_pool() -> dict:
     }
 
 
+def _avg(values: list) -> int:
+    """Среднее по непустым значениям (0, если значений нет)."""
+    vals = [v for v in values if v is not None]
+    return round(sum(vals) / len(vals)) if vals else 0
+
+
 def admin_stats() -> dict:
     with get_conn() as conn:
         sessions = conn.execute(
@@ -119,12 +125,15 @@ def admin_stats() -> dict:
         ).fetchall()
 
         total = len(sessions)
-        avg = {"ru": 0, "en": 0, "bilingualism": 0, "honesty": 0}
-        if total:
-            avg["ru"] = round(sum(s["ru_percent"] for s in sessions) / total)
-            avg["en"] = round(sum(s["en_percent"] for s in sessions) / total)
-            avg["bilingualism"] = round(sum(s["bilingualism"] for s in sessions) / total)
-            avg["honesty"] = round(sum(s["honesty"] for s in sessions) / total)
+        # Язык усредняем только по сессиям, где он реально тестировался (по режиму):
+        # у одноязычных прохождений второй язык и билингвальность не имеют смысла
+        # и хранятся как NULL — иначе средние ломаются и искажаются. См. percentile_pool().
+        avg = {
+            "ru": _avg([s["ru_percent"] for s in sessions if s["mode"] in ("bilingual", "ru")]),
+            "en": _avg([s["en_percent"] for s in sessions if s["mode"] in ("bilingual", "en")]),
+            "bilingualism": _avg([s["bilingualism"] for s in sessions if s["mode"] == "bilingual"]),
+            "honesty": _avg([s["honesty"] for s in sessions]),
+        }
 
         by_level = conn.execute(
             """SELECT level,
