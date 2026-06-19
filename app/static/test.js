@@ -39,7 +39,7 @@ function renderQuestion(q) {
 
   if (q.answer_kind === "choice") {
     const sentence = document.createElement("div");
-    sentence.className = "sentence";
+    sentence.className = q.type === "text_compression" ? "sentence passage" : "sentence";
     sentence.textContent = q.prompt;
     els.body.appendChild(sentence);
 

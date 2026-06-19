@@ -44,7 +44,7 @@ def answer(req: AnswerRequest):
 
     if session.index >= session.k:
         session.finished = True
-        session.result = scoring.compute_result(session)
+        session.result = scoring.compute_result(session, db.percentile_pool())
         session.current = None
         db.save_session(session, session.result, sessions.now())
         return {"finished": True, "result": session.result}

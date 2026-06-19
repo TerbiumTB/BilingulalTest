@@ -11,6 +11,7 @@ from .word_provider import WordProvider, WordsUnavailable
 TYPE_VOCAB = "vocab"
 TYPE_FAKE_SEEN = "fake_seen"
 TYPE_SENTENCE_GAP = "sentence_gap"
+TYPE_TEXT_COMPRESSION = "text_compression"
 TYPE_TRANSLATE = "translate"
 
 ANSWER_BINARY = "binary"
@@ -215,5 +216,108 @@ def make_sentence_gap(lang: str, level: str,
         extra={
             "instruction": _DIR_INSTRUCTION[direction],
             "raw_sentence": tpl["sentence"],
+        },
+    )
+
+
+# --- Упражнение «Сжатие текста» -------------------------------------------
+# Показываем абзац (3-5 предложений) на одном языке, нужно выбрать из четырёх
+# вариантов единственное корректное сокращение на другом языке.
+
+_COMPRESSION_INSTRUCTION = {
+    DIR_RU_TO_EN: "Прочитайте текст и выберите английское предложение, которое точно передаёт его смысл",
+    DIR_EN_TO_RU: "Прочитайте текст и выберите русское предложение, которое точно передаёт его смысл",
+}
+
+_FALLBACK_COMPRESSION_BANK: list[dict] = [
+    {
+        "level": "B1",
+        "direction": DIR_RU_TO_EN,
+        "text": "Антон давно хотел научиться играть на гитаре. Полгода назад он записался "
+                "на занятия и теперь играет каждый вечер.",
+        "summary": "Anton started learning the guitar and now plays every day.",
+        "distractors": [
+            "Anton sold his guitar.",
+            "Anton teaches other people to play the guitar.",
+            "Anton prefers the piano to the guitar.",
+        ],
+    },
+]
+
+_COMPRESSION_FILE = (
+    Path(__file__).resolve().parent.parent / "data" / "words" / "text_compression_examples.txt"
+)
+
+
+def _load_compression_bank() -> list[dict]:
+    try:
+        raw = _COMPRESSION_FILE.read_text(encoding="utf-8")
+        data = ast.literal_eval(raw)
+    except (OSError, ValueError, SyntaxError):
+        return list(_FALLBACK_COMPRESSION_BANK)
+
+    bank: list[dict] = []
+    for item in data:
+        try:
+            text = item["text"]
+            summary = item["summary"]
+            level = item["level"]
+        except (KeyError, TypeError):
+            continue
+        if not text or not summary or level not in config.LEVEL2IDX:
+            continue
+        direction = item.get("direction", DIR_RU_TO_EN)
+        if direction not in _DIR_LANG:
+            direction = DIR_RU_TO_EN
+        bank.append({
+            "level": level,
+            "direction": direction,
+            "text": text,
+            "summary": summary,
+            "distractors": list(item.get("distractors", [])),
+        })
+    return bank or list(_FALLBACK_COMPRESSION_BANK)
+
+
+TEXT_COMPRESSION_BANK: list[dict] = _load_compression_bank()
+
+
+def _compression_pick(level: str, lang: str, avoid: set[str] | None = None) -> dict:
+    avoid = avoid or set()
+    pool_all = [t for t in TEXT_COMPRESSION_BANK if _DIR_LANG[t["direction"]] == lang]
+    if not pool_all:  # на случай, если для языка нет примеров — берём любые
+        pool_all = TEXT_COMPRESSION_BANK
+    target = config.LEVEL2IDX[level]
+    order = sorted(
+        pool_all,
+        key=lambda t: abs(config.LEVEL2IDX[t["level"]] - target),
+    )
+    fresh = [t for t in order if t["text"] not in avoid]
+    pool = fresh or order
+    best = pool[0]["level"]
+    candidates = [t for t in pool if t["level"] == best]
+    return random.choice(candidates)
+
+
+def make_text_compression(lang: str, level: str,
+                          avoid: set[str] | None = None) -> Question:
+    tpl = _compression_pick(level, lang, avoid)
+    direction = tpl["direction"]
+    tested_lang = _DIR_LANG[direction]
+    options = [tpl["summary"]] + list(tpl["distractors"])
+    random.shuffle(options)
+    return Question(
+        question_id=_new_id(),
+        type=TYPE_TEXT_COMPRESSION,
+        lang=tested_lang,
+        level=tpl["level"],
+        prompt=tpl["text"],
+        answer_kind=ANSWER_CHOICE,
+        options=options,
+        correct_answer=tpl["summary"],
+        affects_theta=True,
+        extra={
+            "instruction": _COMPRESSION_INSTRUCTION[direction],
+            "raw_text": tpl["text"],
         },
     )
