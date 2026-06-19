@@ -46,8 +46,9 @@ def next_question(session, provider: WordProvider) -> Question:
     qtype = pick_type(session)
 
     if qtype == qb.TYPE_SENTENCE_GAP:
-        level = _theta_to_level(session.theta["EN"])
-        q = qb.make_sentence_gap("EN", level, avoid=session.seen_gaps)
+        lang = pick_language(session)
+        level = _theta_to_level(session.theta[lang])
+        q = qb.make_sentence_gap(lang, level, avoid=session.seen_gaps)
         session.seen_gaps.add(q.extra.get("raw_sentence", q.prompt))
     else:
         lang = pick_language(session)
@@ -58,7 +59,6 @@ def next_question(session, provider: WordProvider) -> Question:
             else:
                 q = qb.make_vocab(provider, lang, level, avoid=session.seen_words)
         except WordsUnavailable:
-            # запасной путь: настоящее слово (сид всегда содержит real-леммы)
             q = qb.make_vocab(provider, lang, level, avoid=session.seen_words)
         session.seen_words.add(f"{q.lang}:{q.prompt}")
 
@@ -76,7 +76,7 @@ def grade(question: Question, answer: str) -> dict:
             "is_fake": False,
             "caught_lie": None,
             "affects_theta": True,
-            "lang": "EN",
+            "lang": question.lang,
         }
 
     said_yes = answer == qb.ANS_YES
