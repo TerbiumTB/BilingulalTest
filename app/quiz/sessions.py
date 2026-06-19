@@ -30,6 +30,10 @@ class Session:
     result: dict | None = None
     seen_words: set = field(default_factory=set)
     seen_gaps: set = field(default_factory=set)
+    seen_texts: set = field(default_factory=set)
+    # Результаты кросс-языковых упражнений (вставка слова + сжатие текста):
+    # по ним считаются «межъязыковая гибкость» и «направленность перевода».
+    cross_answers: list = field(default_factory=list)  # [{"type", "lang", "correct"}]
 
 
 class SessionStore:

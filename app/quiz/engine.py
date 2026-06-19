@@ -37,6 +37,8 @@ def pick_type(session) -> str:
     i = session.index
     if not single and i % 5 == 4:
         return qb.TYPE_SENTENCE_GAP
+    if not single and i % 5 == 3:
+        return qb.TYPE_TEXT_COMPRESSION
     if i % 5 == 2:
         return qb.TYPE_FAKE_SEEN
     return qb.TYPE_VOCAB
@@ -45,7 +47,12 @@ def pick_type(session) -> str:
 def next_question(session, provider: WordProvider) -> Question:
     qtype = pick_type(session)
 
-    if qtype == qb.TYPE_SENTENCE_GAP:
+    if qtype == qb.TYPE_TEXT_COMPRESSION:
+        lang = pick_language(session)
+        level = _theta_to_level(session.theta[lang])
+        q = qb.make_text_compression(lang, level, avoid=session.seen_texts)
+        session.seen_texts.add(q.extra.get("raw_text", q.prompt))
+    elif qtype == qb.TYPE_SENTENCE_GAP:
         lang = pick_language(session)
         level = _theta_to_level(session.theta[lang])
         q = qb.make_sentence_gap(lang, level, avoid=session.seen_gaps)
@@ -70,13 +77,14 @@ def next_question(session, provider: WordProvider) -> Question:
 def grade(question: Question, answer: str) -> dict:
     answer = (answer or "").strip()
 
-    if question.type == qb.TYPE_SENTENCE_GAP:
+    if question.type in (qb.TYPE_SENTENCE_GAP, qb.TYPE_TEXT_COMPRESSION):
         return {
             "correct": answer == question.correct_answer,
             "is_fake": False,
             "caught_lie": None,
             "affects_theta": True,
             "lang": question.lang,
+            "type": question.type,
         }
 
     said_yes = answer == qb.ANS_YES
@@ -99,6 +107,14 @@ def grade(question: Question, answer: str) -> dict:
 
 
 def apply_result(session, result: dict) -> None:
+    qtype = result.get("type")
+    if qtype in (qb.TYPE_SENTENCE_GAP, qb.TYPE_TEXT_COMPRESSION) and result["correct"] is not None:
+        session.cross_answers.append({
+            "type": qtype,
+            "lang": result["lang"],
+            "correct": bool(result["correct"]),
+        })
+
     if not result["affects_theta"] or result["correct"] is None:
         return
     lang = result["lang"]

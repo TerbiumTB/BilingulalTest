@@ -105,6 +105,7 @@ button:active { transform: translateY(1px); }
 .instruction { font-size: 15px; color: var(--muted); margin-bottom: 22px; }
 .word { font-size: 38px; font-weight: 700; text-align: center; padding: 26px 0; word-break: break-word; letter-spacing: -0.01em; }
 .sentence { font-size: 21px; text-align: center; padding: 8px 0 22px; line-height: 1.5; }
+.sentence.passage { font-size: 17px; text-align: left; max-width: 640px; margin: 0 auto; }
 
 .choices { display: grid; gap: 10px; }
 .choices button { background: var(--surface); color: var(--text); border: 1px solid var(--border); text-align: left; padding: 14px 16px; }
@@ -125,6 +126,36 @@ button:active { transform: translateY(1px); }
 .metric .val { font-size: 22px; font-weight: 700; }
 .metric .val small { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 4px; }
 .flag { color: var(--warn); font-weight: 600; margin: 12px 0 0; font-size: 14px; }
+
+/* всплывающая подсказка по наведению на название метрики */
+.metric .name.tip {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted var(--muted);
+  text-underline-offset: 3px;
+}
+.metric .name.tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  width: 250px;
+  max-width: 72vw;
+  background: var(--text);
+  color: #fff;
+  padding: 9px 11px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-3px);
+  transition: opacity .15s ease, transform .15s ease;
+  box-shadow: 0 6px 20px rgba(20, 30, 50, 0.18);
+}
+.metric .name.tip:hover::after { opacity: 1; visibility: visible; transform: translateY(0); }
 
 /* --- info --- */
 .info-block { margin-bottom: 22px; }

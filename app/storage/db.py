@@ -94,6 +94,24 @@ def save_session(session, result: dict, finished_at: str) -> None:
         )
 
 
+def percentile_pool() -> dict:
+    """Баллы прошлых завершённых сессий — для оценки «лучше X% прошедших».
+    Язык учитываем только там, где он реально тестировался (по режиму)."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT mode, ru_percent, en_percent, bilingualism "
+            "FROM sessions WHERE finished_at IS NOT NULL"
+        ).fetchall()
+    return {
+        "ru": [r["ru_percent"] for r in rows
+               if r["mode"] in ("bilingual", "ru") and r["ru_percent"] is not None],
+        "en": [r["en_percent"] for r in rows
+               if r["mode"] in ("bilingual", "en") and r["en_percent"] is not None],
+        "bilingualism": [r["bilingualism"] for r in rows
+                         if r["mode"] == "bilingual" and r["bilingualism"] is not None],
+    }
+
+
 def admin_stats() -> dict:
     with get_conn() as conn:
         sessions = conn.execute(
